@@ -1,0 +1,1130 @@
+
+<!--
+====================================================================
+Проект: Виртуальный радиоприемник «Транзистор» (Эмулятор Web Audio API)
+Автор: [FireTigerMan, firetigerman81@gmail.com]
+Лицензия: GNU GPLv3 (General Public License version 3)
+
+Этот проект распространяется свободно. Вы можете использовать, 
+изменять и распространять его на условиях лицензии GNU GPLv3.
+Обязательные условия: 
+1. Указание авторства и ссылки на оригинальный проект.
+2. Любые измененные версии должны распространяться под этой же 
+   свободной лицензией (GPLv3) с открытым исходным кодом.
+====================================================================
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Транзистор</title>
+<style type="text/css">
+ /* ========== ВАШИ ОРИГИНАЛЬНЫЕ СТИЛИ (ПОЛНОСТЬЮ) ========== */
+ .radio-wrapper {
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ padding: 40px 10px;
+ background-color: #f4ece1;
+ font-family: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif;
+ }
+
+ .antenna {
+ position: absolute;
+ width: 6px;
+ height: 150px;
+ background: linear-gradient(to right, #d4d4d4, #fff, #a3a3a3);
+ top: -130px;
+ right: 40px;
+ border-radius: 3px 3px 0 0;
+ box-shadow: inset -1px 0 2px rgba(0,0,0,0.3), 2px 2px 5px rgba(0,0,0,0.2);
+ transform: rotate(15deg);
+ transform-origin: bottom;
+ z-index: 1;
+ }
+
+ .radio-handle {
+ position: absolute;
+ top: -25px;
+ left: 5%;
+ width: 90%;
+ height: 40px;
+ border: 8px solid #2b1f16;
+ border-bottom: none;
+ border-radius: 15px 15px 0 0;
+ box-shadow: 0 -5px 10px rgba(0,0,0,0.3);
+ z-index: 0;
+ }
+
+ .soviet-radio-body {
+ position: relative;
+ width: 100%;
+ max-width: 600px;
+ background: linear-gradient(135deg, #5c2b11, #361706);
+ border-radius: 12px;
+ padding: 15px;
+ box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 10px 15px 30px rgba(0,0,0,0.5), -2px -2px 5px rgba(255,255,255,0.1);
+ z-index: 2;
+ }
+
+ .radio-front-panel {
+ background: #e2e1dc;
+ border-radius: 8px;
+ border: 4px solid #b5b5b5;
+ padding: 15px;
+ box-shadow: inset 2px 2px 10px rgba(0,0,0,0.4), 0 0 5px rgba(0,0,0,0.8);
+ display: flex;
+ flex-direction: column;
+ gap: 15px;
+ }
+
+ .radio-title-bar {
+ width: 100%;
+ text-align: center;
+ padding: 6px 10px;
+ background: linear-gradient(180deg, #4a2010, #3a1808, #2a1005);
+ border-radius: 6px 6px 0 0;
+ margin-bottom: -4px;
+ border: 1px solid rgba(255,255,255,0.05);
+ border-bottom: none;
+ box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 4px rgba(0,0,0,0.3);
+ position: relative;
+ overflow: hidden;
+ box-sizing: border-box;
+ }
+
+ .radio-title-text {
+ font-family: "Times New Roman", Times, serif;
+ font-size: clamp(14px, 4vw, 26px);
+ font-weight: bold;
+ letter-spacing: clamp(3px, 1.5vw, 12px);
+ color: #cca45b;
+ text-shadow: 0 1px 0 #a07830, 0 2px 4px rgba(0,0,0,0.6), 0 0 12px rgba(204,164,91,0.25);
+ text-transform: uppercase;
+ white-space: nowrap;
+ display: block;
+ line-height: 1.3;
+ background: linear-gradient(180deg, #e8cc80, #cca45b, #a07830);
+ -webkit-background-clip: text;
+ -webkit-text-fill-color: transparent;
+ background-clip: text;
+ }
+
+ .radio-title-sub {
+ font-family: "Trebuchet MS", Arial, sans-serif;
+ font-size: clamp(7px, 1.8vw, 10px);
+ letter-spacing: clamp(2px, 1vw, 6px);
+ color: #987040;
+ text-transform: uppercase;
+ display: block;
+ margin-top: 1px;
+ white-space: nowrap;
+ text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+ }
+
+ .radio-title-bar::after {
+ content: '';
+ position: absolute;
+ bottom: 0;
+ left: 10%;
+ width: 80%;
+ height: 1px;
+ background: linear-gradient(90deg, transparent, #cca45b, transparent);
+ }
+
+ .top-section {
+ display: flex;
+ gap: 15px;
+ min-height: 140px;
+ }
+
+ .speaker-grill {
+ flex: 1.2;
+ min-height: 120px;
+ background-color: #1a1a1a;
+ background-image: repeating-linear-gradient( 0deg, #1a1a1a, #1a1a1a 4px, #333 4px, #333 6px );
+ border-radius: 5px;
+ border: 3px solid #000;
+ box-shadow: inset 0 0 15px #000;
+ position: relative;
+ overflow: hidden;
+ display: flex;
+ align-items: flex-end;
+ justify-content: flex-end;
+ }
+
+ .brand-logo {
+ position: relative;
+ padding: 8px 12px;
+ color: #cca45b;
+ font-size: 18px;
+ font-weight: bold;
+ font-style: italic;
+ letter-spacing: 2px;
+ text-shadow: 1px 1px 0px #000;
+ font-family: "Times New Roman", Times, serif;
+ white-space: nowrap;
+ line-height: 1;
+ }
+
+ .tuning-dial {
+ flex: 1;
+ min-height: 80px;
+ background: #c3cfb8;
+ border: 3px solid #444;
+ border-radius: 5px;
+ position: relative;
+ box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
+ overflow: hidden;
+ display: flex;
+ flex-direction: column;
+ justify-content: space-between;
+ padding: 10px 5px;
+ }
+
+ .band {
+ display: flex;
+ justify-content: space-between;
+ color: #333;
+ font-size: 11px;
+ font-weight: bold;
+ border-bottom: 1px solid rgba(0,0,0,0.2);
+ padding-bottom: 2px;
+ }
+ .band:last-child { border-bottom: none; }
+ .band span.name { color: #8b0000; }
+
+ .tuning-needle {
+ position: absolute;
+ top: 0;
+ bottom: 0;
+ left: 65%;
+ width: 3px;
+ background-color: #d12222;
+ box-shadow: 1px 0 2px rgba(0,0,0,0.5);
+ z-index: 2;
+ animation: tuning 15s infinite alternate ease-in-out;
+ }
+
+ @keyframes tuning {
+ 0% { left: 20%; }
+ 30% { left: 45%; }
+ 50% { left: 40%; }
+ 80% { left: 75%; }
+ 100% { left: 65%; }
+ }
+
+ /* ===== Панель управления (чёрный блок) ===== */
+ .player-section {
+ background: #2a2a2a;
+ padding: 8px;
+ border-radius: 5px;
+ border: 2px solid #111;
+ box-shadow: inset 0 0 10px #000, 0 1px 0 rgba(255,255,255,0.5);
+ position: relative;
+ z-index: 5;
+ }
+
+ .player-container {
+ position: relative;
+ width: 100%;
+ background: #181818;
+ border-radius: 4px;
+ box-shadow: inset 0 0 20px #000;
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ padding: 10px 0 10px 0;
+ gap: 1px;
+ }
+
+ .power-row {
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ gap: 5px;
+ width: 100%;
+ margin: 0;
+ padding: 0;
+ }
+
+ .retro-led {
+ width: 10px;
+ height: 10px;
+ border-radius: 50%;
+ background-color: #300;
+ border: 1px solid #000;
+ box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
+ transition: all 0.2s;
+ margin: 0;
+ }
+ .retro-led.on {
+ background-color: #ff2222;
+ box-shadow: 0 0 8px #ff0000, inset 2px 2px 5px rgba(255,255,255,0.5);
+ }
+
+ .switch-wrapper {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ gap: 5px;
+ margin: 0;
+ padding: 0;
+ }
+
+ .switch-label {
+ font-family: "Arial Narrow", sans-serif;
+ font-size: 10px;
+ color: #888;
+ text-transform: uppercase;
+ letter-spacing: 1px;
+ text-shadow: 0 -1px 0 #000;
+ }
+
+ .soviet-switch-housing {
+ width: 80px;
+ height: 32px;
+ background: #0a0a0a;
+ border-radius: 4px;
+ border: 1px solid #333;
+ border-top: 2px solid #000;
+ box-shadow: inset 0 3px 6px rgba(0,0,0,1);
+ position: relative;
+ cursor: pointer;
+ }
+
+ .soviet-switch-lever {
+ width: 36px;
+ height: 24px;
+ background: linear-gradient(to bottom, #444, #222);
+ border: 1px solid #000;
+ border-top: 1px solid #555;
+ border-radius: 2px;
+ position: absolute;
+ top: 3px;
+ left: 4px;
+ transition: left 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+ box-shadow: 0 2px 4px rgba(0,0,0,0.8);
+ z-index: 2;
+ }
+
+ .soviet-switch-lever::after {
+ content: '';
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ transform: translate(-50%, -50%);
+ width: 14px;
+ height: 14px;
+ background: repeating-linear-gradient( 90deg, transparent, transparent 2px, #111 2px, #111 3px );
+ }
+
+ .soviet-switch-lever.on {
+ left: 38px;
+ background: linear-gradient(to bottom, #555, #333);
+ }
+
+ .soviet-switch-housing::before {
+ content: '0';
+ position: absolute;
+ left: 10px;
+ top: 9px;
+ font-size: 10px;
+ color: #333;
+ font-family: sans-serif;
+ }
+ .soviet-switch-housing::after {
+ content: 'I';
+ position: absolute;
+ right: 12px;
+ top: 9px;
+ font-size: 10px;
+ color: #333;
+ font-family: sans-serif;
+ }
+
+ /* Крутилки с подписями и светодиодами */
+ .knobs-row {
+ display: flex;
+ justify-content: space-between;
+ width: 100%;
+ margin-top: -40px;
+ padding-left: 2px;
+ padding-right: 2px;
+ padding-bottom: 5px;
+ box-sizing: border-box;
+ }
+
+ .knob-container {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ gap: 2px;
+ min-width: 0;
+ }
+
+ .knob-led {
+ width: 8px;
+ height: 8px;
+ border-radius: 50%;
+ background-color: #0a3a0a;
+ border: 1px solid #000;
+ box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
+ margin-bottom: 2px;
+ transition: all 0.1s;
+ }
+ .knob-led.on {
+ background-color: #0f0;
+ box-shadow: 0 0 6px #0f0, inset 1px 1px 3px rgba(255,255,255,0.5);
+ }
+
+ .knob-label {
+ font-family: "Arial Narrow", sans-serif;
+ font-size: 10px;
+ color: #ccc;
+ text-transform: uppercase;
+ letter-spacing: 1px;
+ text-shadow: 0 -1px 0 #000;
+ opacity: 0.8;
+ white-space: nowrap;
+ }
+
+ .knob {
+ width: 30px;
+ height: 30px;
+ background: radial-gradient(circle, #ddd, #777);
+ border-radius: 50%;
+ box-shadow: 2px 2px 5px rgba(0,0,0,0.6), inset -1px -1px 2px rgba(0,0,0,0.5);
+ border: 2px solid #222;
+ position: relative;
+ cursor: grab;
+ transition: box-shadow 0.1s;
+ }
+ .knob:active {
+ cursor: grabbing;
+ box-shadow: 1px 1px 3px rgba(0,0,0,0.8), inset -1px -1px 1px rgba(0,0,0,0.8);
+ }
+ .knob::after {
+ content: '';
+ position: absolute;
+ top: 5px;
+ left: 13px;
+ width: 4px;
+ height: 10px;
+ background: #333;
+ border-radius: 2px;
+ }
+
+ /* Кнопки каналов */
+ .channel-section {
+ background: transparent;
+ padding: 5px 0;
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ }
+
+ .channel-row {
+ display: flex;
+ justify-content: center;
+ flex-wrap: wrap;
+ gap: 6px;
+ width: 100%;
+ max-width: 600px;
+ margin: 0 auto;
+ padding: 5px 0;
+ }
+
+ .channel-btn {
+ width: 40px;
+ height: 40px;
+ background: #3a3a3a;
+ border: 2px solid #666;
+ border-radius: 6px 6px 4px 4px;
+ box-shadow: 0 4px 0 #222, inset 0 1px 3px rgba(255,255,255,0.2);
+ color: #eee;
+ font-weight: bold;
+ font-size: 18px;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ cursor: pointer;
+ transition: all 0.1s ease;
+ user-select: none;
+ font-family: 'Arial', sans-serif;
+ box-sizing: border-box;
+ line-height: 1;
+ text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+ }
+
+ .channel-btn.active {
+ background: #1e1e1e;
+ border-color: #aaa;
+ box-shadow: inset 0 4px 4px rgba(0,0,0,0.6), 0 1px 0 #444;
+ transform: translateY(3px);
+ color: #fff;
+ }
+
+ .channel-btn:active {
+ transform: translateY(4px);
+ box-shadow: inset 0 4px 4px rgba(0,0,0,0.6), 0 1px 0 #444;
+ }
+
+ /* Адаптивность */
+ @media (max-width: 480px) {
+ .top-section {
+ flex-direction: column;
+ gap: 10px;
+ }
+ .speaker-grill {
+ min-height: 100px;
+ width: 100%;
+ }
+ .tuning-dial {
+ min-height: 80px;
+ width: 100%;
+ }
+ .brand-logo {
+ font-size: 15px;
+ padding: 6px 10px;
+ }
+ .antenna {
+ height: 100px;
+ top: -85px;
+ right: 25px;
+ }
+ .radio-handle {
+ height: 30px;
+ top: -20px;
+ border-width: 6px;
+ }
+ .player-container {
+ padding: 5px 0 5px 0;
+ gap: 1px;
+ }
+ .knobs-row {
+ gap: 200px;
+ }
+ .knob-label {
+ font-size: 10px;
+ }
+ .knob {
+ width: 26px;
+ height: 26px;
+ }
+ .knob::after {
+ top: 4px;
+ left: 11px;
+ width: 4px;
+ height: 8px;
+ }
+ .channel-btn {
+ width: 34px;
+ height: 34px;
+ font-size: 16px;
+ }
+ }
+
+ @media (max-width: 320px) {
+ .soviet-radio-body {
+ padding: 10px;
+ }
+ .radio-front-panel {
+ padding: 10px;
+ gap: 10px;
+ }
+ .speaker-grill {
+ min-height: 80px;
+ }
+ .brand-logo {
+ font-size: 13px;
+ padding: 5px 8px;
+ }
+ .band {
+ font-size: 9px;
+ }
+ .knobs-row {
+ gap: 120px;
+ }
+ .knob-label {
+ font-size: 9px;
+ }
+ .knob {
+ width: 24px;
+ height: 24px;
+ }
+ .knob::after {
+ top: 4px;
+ left: 10px;
+ width: 4px;
+ height: 7px;
+ }
+ .channel-btn {
+ width: 30px;
+ height: 30px;
+ font-size: 14px;
+ }
+ }
+ 
+/* Дисклеймер в ретро-стиле */
+/* Дисклеймер в виде советской заводской таблички */
+.retro-disclaimer {
+ /* Легкий градиент для имитации выпуклого пластика/металла */
+ background: linear-gradient(to bottom, #c0b9a8 0%, #a8a08f 100%);
+ 
+ /* Отрисовка четырех "винтиков" по углам средствами CSS */
+ background-image: 
+ radial-gradient(circle at 12px 12px, #4a4030 2px, #3a2a1a 3px, transparent 4px),
+ radial-gradient(circle at calc(100% - 12px) 12px, #4a4030 2px, #3a2a1a 3px, transparent 4px),
+ radial-gradient(circle at 12px calc(100% - 12px), #4a4030 2px, #3a2a1a 3px, transparent 4px),
+ radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), #4a4030 2px, #3a2a1a 3px, transparent 4px),
+ linear-gradient(to bottom, #c0b9a8, #afaa9b);
+
+ border: 2px solid #5b4f3b;
+ border-radius: 8px; /* Уменьшил радиус, старые таблички более угловатые */
+ padding: 18px 25px; /* Увеличил отступы из-за винтиков */
+ margin: 20px auto 10px;
+ max-width: 600px;
+ 
+ /* Сложная тень: внутренний свет (блик) сверху, тень от толщины внизу + тень от таблички */
+ box-shadow: 
+ inset 0 1px 1px rgba(255, 255, 255, 0.6), 
+ inset 0 -1px 2px rgba(0, 0, 0, 0.2),
+ 0 4px 0 #5b4f3b, 
+ 0 6px 5px rgba(0, 0, 0, 0.3);
+ 
+ font-family: 'Trebuchet MS', 'Arial', sans-serif;
+ color: #2d2d1c;
+ font-size: 13px;
+ line-height: 1.6;
+ 
+ /* Эффект выгравированного текста */
+ text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.retro-disclaimer .disclaimer-header {
+ font-weight: 900;
+ margin-bottom: 12px;
+ text-transform: uppercase;
+ letter-spacing: 1.5px;
+ color: #2a2216;
+ border-bottom: 1px groove #8b7a62; /* groove дает эффект вдавленной линии */
+ padding-bottom: 5px;
+ text-align: center;
+ font-size: 14px;
+}
+
+.retro-disclaimer a {
+ color: #521c1c; /* Чуть красноватый цвет для ссылок, как сургуч или красная краска */
+ text-decoration: none;
+ border-bottom: 1px dotted #8b7a62;
+ cursor: pointer;
+ white-space: nowrap; 
+ transition: all 0.2s ease;
+}
+
+.retro-disclaimer a:hover {
+ color: #d12a2a;
+ border-bottom: 1px solid #d12a2a;
+ text-shadow: none; /* Убираем гравировку при наведении для четкости */
+}
+
+/* Адаптация под узкие экраны */
+@media (max-width: 480px) {
+ .retro-disclaimer {
+ font-size: 11px;
+ padding: 15px 15px; /* Сужаем табличку, но оставляем место для винтов */
+ border-radius: 6px;
+ 
+ /* Сдвигаем винтики ближе к углам на мобильных */
+ background-image: 
+ radial-gradient(circle at 8px 8px, #4a4030 1.5px, #3a2a1a 2px, transparent 3px),
+ radial-gradient(circle at calc(100% - 8px) 8px, #4a4030 1.5px, #3a2a1a 2px, transparent 3px),
+ radial-gradient(circle at 8px calc(100% - 8px), #4a4030 1.5px, #3a2a1a 2px, transparent 3px),
+ radial-gradient(circle at calc(100% - 8px) calc(100% - 8px), #4a4030 1.5px, #3a2a1a 2px, transparent 3px),
+ linear-gradient(to bottom, #c0b9a8, #afaa9b);
+ }
+ 
+ .retro-disclaimer .disclaimer-header {
+ font-size: 12px;
+ }
+ 
+ .retro-disclaimer a {
+ white-space: normal; 
+ }
+}
+ </style>
+/head>
+<body>
+
+<div class="radio-wrapper">
+ <div class="soviet-radio-body">
+ <div class="antenna">&nbsp;</div>
+ <div class="radio-handle">&nbsp;</div>
+ <div class="radio-title-bar"><span class="radio-title-text">ТРАНЗИСТОР</span> <span class="radio-title-sub">РАДИОПРИЁМНИК • 1978</span></div>
+ <div class="radio-front-panel">
+ <div class="top-section">
+ <div class="speaker-grill">
+ <div class="brand-logo" id="stationName">Юность</div>
+ </div>
+ <div class="tuning-dial">
+ <div class="tuning-needle">&nbsp;</div>
+ <div class="band"><span class="name">УКВ</span> <span>64</span> <span>68</span> <span>73 МГц</span></div>
+ <div class="band"><span class="name">КВ1</span> <span>25</span> <span>27</span> <span>31 м</span></div>
+ <div class="band"><span class="name">КВ2</span> <span>41</span> <span>60</span> <span>75 м</span></div>
+ <div class="band"><span class="name">СВ</span> <span>525</span> <span>750</span> <span>1607 кГц</span></div>
+ <div class="band"><span class="name">ДВ</span> <span>148</span> <span>190</span> <span>285 кГц</span></div>
+ </div>
+ </div>
+ <!-- Чёрная панель управления -->
+ <div class="player-section">
+ <div class="player-container">
+ <div class="power-row">
+ <div class="retro-led" id="led">&nbsp;</div>
+ <div class="switch-wrapper">
+ <div class="switch-label">Питание</div>
+ <div class="soviet-switch-housing" onclick="toggleRadio()">
+ <div class="soviet-switch-lever" id="switch-lever">&nbsp;</div>
+ </div>
+ </div>
+ </div>
+ <!-- Крутилки с подписями и светодиодами -->
+ <div class="knobs-row">
+ <div class="knob-container">
+ <div class="knob-led" id="bassLed"></div>
+ <span class="knob-label">НЧ</span>
+ <div class="knob" id="bassKnob"></div>
+ </div>
+ <div class="knob-container">
+ <div class="knob-led" id="trebleLed"></div>
+ <span class="knob-label">ВЧ</span>
+ <div class="knob" id="trebleKnob"></div>
+ </div>
+ </div>
+ <audio id="audio" preload="none"></audio>
+ </div>
+ </div>
+ <!-- Кнопки каналов -->
+ <div class="channel-section">
+ <div class="channel-row" id="channelRow"></div>
+ </div>
+ </div>
+ </div>
+</div>
+<!-- Дисклеймер о правах -->
+
+
+<!-- Дисклеймер в виде технической таблички -->
+<div class="retro-disclaimer">
+ <div class="disclaimer-header">
+ <svg width="18" height="18" viewBox="0 0 100 100" style="vertical-align: middle; margin-right: 6px;">
+ <!-- Желтый треугольник с темной обводкой -->
+ <polygon points="50,5 95,90 5,90" fill="#e8c547" stroke="#2d2d1c" stroke-width="6" stroke-linejoin="round"/>
+ <!-- Черная молния -->
+ <path d="M52 20 L32 58 L50 58 L42 85 L72 45 L52 45 Z" fill="#2d2d1c"/>
+ </svg>
+ Внимание! Информация для правообладателей
+</div>
+
+ <div class="disclaimer-content">
+ Данный виртуальный радиоприемник является некоммерческим каталогом открытых ссылок. Все права на&nbsp;аудиопотоки и&nbsp;товарные знаки принадлежат их законным владельцам &mdash; радиостанциям: <a href="https://vgtrk.ru/radiounost" rel="noopener" target="_blank">&laquo;Радио ЮНОСТЬ&raquo;</a>, <a href="https://vk.com/mayakfm" rel="noopener" target="_blank">&laquo;МАЯК&raquo;</a>, <a href="https://vk.com/radiorussia1" rel="noopener" target="_blank">&laquo;РАДИО РОССИИ&raquo;</a>, <a href="https://vk.com/cultradio91_6fm" rel="noopener" target="_blank">&laquo;РАДИО КУЛЬТУРА&raquo;</a>, <a href="https://volna.top/radio/classic-fm" rel="noopener" target="_blank">&laquo;CLASSIC FM&raquo;</a>, <a href="https://radio-stalingrad.ru/" rel="noopener" target="_blank">&laquo;РАДИО СТАЛИНГРАД&raquo;</a>, <a href="https://vk.com/public213908552" rel="noopener" target="_blank">&laquo;РАДИО РУССКИЕ ВЕЧЁРКИ&raquo;</a>, <a href="https://vk.com/radiokniga_official" rel="noopener" target="_blank">&laquo;РАДИО КНИГА&raquo;</a>, <a href="https://umnoeradio.ru" rel="noopener" target="_blank">&laquo;Умное Радио&raquo;</a>, <a href="https://skazkafm.ru/" rel="noopener" target="_blank">&laquo;СКАЗКА FM&raquo;</a>.
+ <br><br>
+ Воспроизведение осуществляется напрямую с&nbsp;официальных серверов вещателей. Наш сайт не&nbsp;осуществляет ретрансляцию, не&nbsp;копирует и&nbsp;не&nbsp;хранит аудиоконтент на&nbsp;своих серверах. 
+ <br><br>
+ Если вы являетесь правообладателем и&nbsp;желаете исключить вашу станцию из&nbsp;нашего каталога, пожалуйста, <a href="mailto:zamyatinds@mail.ru" target="_blank">свяжитесь с&nbsp;нами</a> &mdash; доступ к&nbsp;потоку будет удален по&nbsp;первому требованию.
+ </div>
+</div>
+
+<script>
+// ==================== ОРИГИНАЛЬНЫЕ ДАННЫЕ СТАНЦИЙ ====================
+const stations = [
+ { name: "Юность", url: "https://icecast-vgtrk.cdnvideo.ru/unost_mp3_192kbps" },
+ { name: "Маяк", url: "https://icecast-vgtrk.cdnvideo.ru/mayakfm_mp3_192kbps" },
+ { name: "России", url: "https://icecast-vgtrk.cdnvideo.ru/rrzonam_mp3_192kbps" },
+ { name: "Культура", url: "https://icecast-vgtrk.cdnvideo.ru/kulturafm_mp3_192kbps" },
+ { name: "Классика", url: "https://classic.amgradio.ru/ClassicFM" },
+ { name: "Сталинград", url: "https://stalingrad.amgradio.ru/stalingrad" },
+ { name: "Вечёрки", url: "https://rusvecherki.amgradio.ru/rusvecherki" },
+ { name: "Книга", url: "https://bookradio.hostingradio.ru:8069/fm" },
+ { name: "Умное", url: "https://umnoe.amgradio.ru/Umnoe" },
+ { name: "Сказка", url: "https://skazka.amgradio.ru/Skazka" }
+];
+
+const audio = document.getElementById('audio');
+const lever = document.getElementById('switch-lever');
+const led = document.getElementById('led');
+const stationNameEl = document.getElementById('stationName');
+
+let currentChannelIndex = 0;
+let audioContext = null;
+let noiseTimer = null;
+let isRadioOn = false; // состояние питания (включено/выключено)
+
+// ========== СОЗДАНИЕ КНОПОК КАНАЛОВ ==========
+const channelRow = document.getElementById('channelRow');
+for (let i = 0; i < 10; i++) {
+ const btn = document.createElement('div');
+ btn.className = 'channel-btn' + (i === 0 ? ' active' : '');
+ btn.textContent = i;
+ btn.setAttribute('data-index', i);
+ btn.onclick = () => switchChannel(i);
+ channelRow.appendChild(btn);
+}
+
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ЗВУКИ) ==========
+function initAudioContext() {
+ if (!audioContext) {
+ audioContext = new (window.AudioContext || window.webkitAudioContext)();
+ }
+}
+
+function playClick() {
+ initAudioContext();
+ const duration = 0.05;
+ const sampleRate = audioContext.sampleRate;
+ const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+ const data = buffer.getChannelData(0);
+ for (let i = 0; i < buffer.length; i++) {
+ data[i] = (Math.random() * 2 - 1) * (1 - i / buffer.length);
+ }
+ const source = audioContext.createBufferSource();
+ source.buffer = buffer;
+ source.connect(audioContext.destination);
+ source.start();
+}
+
+function playStaticOneSecond() {
+ initAudioContext();
+ const duration = 1.0;
+ const sampleRate = audioContext.sampleRate;
+ const buffer = audioContext.createBuffer(1, sampleRate * duration, sampleRate);
+ const data = buffer.getChannelData(0);
+ for (let i = 0; i < buffer.length; i++) {
+ data[i] = Math.random() * 2 - 1;
+ const env = Math.sin((i / buffer.length) * Math.PI);
+ data[i] *= env * 0.5;
+ }
+ const source = audioContext.createBufferSource();
+ source.buffer = buffer;
+ source.connect(audioContext.destination);
+ source.start();
+}
+
+// ========== ЛОГИКА ВКЛЮЧЕНИЯ/ВЫКЛЮЧЕНИЯ ==========
+function toggleRadio() {
+ playClick();
+ if (audio.paused) {
+ isRadioOn = true; // радио включено
+ lever.classList.add('on');
+ led.classList.add('on');
+ // Восстанавливаем светодиоды согласно положению ручек
+ updateLed(bassLed, bassValue);
+ updateLed(trebleLed, trebleValue);
+ playStaticOneSecond(); // шум 1 сек
+ if (noiseTimer) clearTimeout(noiseTimer);
+ noiseTimer = setTimeout(() => {
+ playCurrentStation();
+ noiseTimer = null;
+ }, 1000);
+ } else {
+ isRadioOn = false; // радио выключено
+ lever.classList.remove('on');
+ led.classList.remove('on');
+ // Гасим зелёные светодиоды
+ bassLed.classList.remove('on');
+ trebleLed.classList.remove('on');
+ audio.pause();
+ audio.src = "";
+ if (noiseTimer) clearTimeout(noiseTimer);
+ noiseTimer = null;
+ if (webAudioReady) {
+ setBypass(true);
+ }
+ }
+}
+// ========== ВОСПРОИЗВЕДЕНИЕ ТЕКУЩЕЙ СТАНЦИИ ==========
+function playCurrentStation() {
+ const station = stations[currentChannelIndex];
+ if (!station.url) {
+ console.warn("Для станции", station.name, "не указан URL");
+ audio.pause();
+ audio.src = "";
+ return;
+ }
+ audio.crossOrigin = 'anonymous';
+ // Для потока "Книга" добавляем антикэш-параметр, чтобы избежать CORS-кэша
+ if (station.url.includes('bookradio')) {
+ audio.src = station.url + '?t=' + Date.now(); // уникальный параметр
+ } else {
+ audio.src = station.url;
+ }
+ audio.load();
+
+ // Инициализируем Web Audio ДО вызова play()
+ if (!webAudioReady) {
+ initWebAudio();
+ }
+
+ audio.play()
+ .then(() => {
+ updateFilters();
+ // Принудительно обновляем светодиоды после старта
+ updateLed(bassLed, bassValue);
+ updateLed(trebleLed, trebleValue);
+ })
+ .catch(error => {
+ console.log("Ошибка воспроизведения:", error);
+ lever.classList.remove('on');
+ led.classList.remove('on');
+ });
+}
+
+// ========== ПЕРЕКЛЮЧЕНИЕ КАНАЛОВ ==========
+function switchChannel(index) {
+ if (index < 0 || index >= stations.length) return;
+ document.querySelectorAll('.channel-btn').forEach((btn, i) => {
+ if (i === index) btn.classList.add('active');
+ else btn.classList.remove('active');
+ });
+ currentChannelIndex = index;
+ stationNameEl.textContent = stations[index].name;
+ if (audio.paused) {
+ playClick();
+ isRadioOn = true; // ДОБАВЛЕНО: сообщаем системе, что радио включилось
+ lever.classList.add('on');
+ led.classList.add('on');
+ updateLed(bassLed, bassValue);
+ updateLed(trebleLed, trebleValue);
+ playStaticOneSecond();
+ if (noiseTimer) clearTimeout(noiseTimer);
+ noiseTimer = setTimeout(() => {
+ playCurrentStation();
+ noiseTimer = null;
+ }, 1000);
+ } else {
+ playStaticOneSecond();
+ if (noiseTimer) clearTimeout(noiseTimer);
+ noiseTimer = setTimeout(() => {
+ playCurrentStation();
+ noiseTimer = null;
+ }, 1000);
+ }
+}
+
+// ========== WEB AUDIO: РЕГУЛЯТОРЫ ТЕМБРА ==========
+const bassKnob = document.getElementById('bassKnob');
+const trebleKnob = document.getElementById('trebleKnob');
+const bassLed = document.getElementById('bassLed');
+const trebleLed = document.getElementById('trebleLed');
+
+let bassValue = 0;
+let trebleValue = 0;
+
+// Параметры эмуляции «Океан-209»
+const Q_BASS = 0.4;
+const Q_TREBLE = 0.4;
+const INFLUENCE = 0.3; // взаимовлияние (30%)
+const COMP_DIV = 20; // делитель компенсации
+const FREQ_BASS = 125; // частота среза НЧ
+const FREQ_TREBLE = 5000; // частота среза ВЧ
+
+// Web Audio узлы
+let webAudioReady = false;
+let audioSource = null;
+let bassFilter = null;
+let trebleFilter = null;
+let compensationGain = null;
+let compressor = null;
+let cleanGain = null; // чистый путь (bypass)
+let processedGain = null; // путь через фильтры
+
+// Инициализация Web Audio
+function initWebAudio() {
+ if (webAudioReady) return;
+
+ if (!audioContext) {
+ audioContext = new (window.AudioContext || window.webkitAudioContext)();
+ }
+
+ try {
+ audioSource = audioContext.createMediaElementSource(audio);
+
+ bassFilter = audioContext.createBiquadFilter();
+ trebleFilter = audioContext.createBiquadFilter();
+ compensationGain = audioContext.createGain();
+ compressor = audioContext.createDynamicsCompressor();
+ cleanGain = audioContext.createGain();
+ processedGain = audioContext.createGain();
+
+ bassFilter.type = 'lowshelf';
+ trebleFilter.type = 'highshelf';
+ bassFilter.frequency.value = FREQ_BASS;
+ trebleFilter.frequency.value = FREQ_TREBLE;
+ bassFilter.Q.value = Q_BASS;
+ trebleFilter.Q.value = Q_TREBLE;
+
+ compressor.threshold.value = -8;
+ compressor.knee.value = 8;
+ compressor.ratio.value = 8;
+ compressor.attack.value = 0.005;
+ compressor.release.value = 0.2;
+
+ cleanGain.gain.value = 1;
+ processedGain.gain.value = 0;
+
+ audioSource.connect(cleanGain);
+ audioSource.connect(bassFilter);
+ bassFilter.connect(trebleFilter);
+ trebleFilter.connect(compensationGain);
+ compensationGain.connect(compressor);
+ compressor.connect(processedGain);
+ cleanGain.connect(audioContext.destination);
+ processedGain.connect(audioContext.destination);
+
+ webAudioReady = true;
+ console.log('Web Audio готов');
+ updateFilters();
+ } catch (e) {
+ console.error('Ошибка инициализации Web Audio:', e);
+ }
+}
+
+function setBypass(bypass) {
+ if (!webAudioReady) return;
+ const now = audioContext.currentTime;
+ if (bypass) {
+ cleanGain.gain.linearRampToValueAtTime(1, now + 0.02);
+ processedGain.gain.linearRampToValueAtTime(0, now + 0.02);
+ } else {
+ cleanGain.gain.linearRampToValueAtTime(0, now + 0.02);
+ processedGain.gain.linearRampToValueAtTime(1, now + 0.02);
+ }
+}
+
+function updateFilters() {
+ if (!webAudioReady) return;
+ if (!bassFilter || !trebleFilter || !compensationGain) return;
+
+ const now = audioContext.currentTime;
+
+ let effectiveBass = bassValue;
+ let effectiveTreble = trebleValue;
+ if (bassValue > 0) {
+ effectiveTreble -= bassValue * INFLUENCE;
+ }
+ if (trebleValue > 0) {
+ effectiveBass -= trebleValue * INFLUENCE;
+ }
+ effectiveBass = Math.max(-12, Math.min(12, effectiveBass));
+ effectiveTreble = Math.max(-12, Math.min(12, effectiveTreble));
+
+ bassFilter.gain.linearRampToValueAtTime(effectiveBass, now + 0.03);
+ trebleFilter.gain.linearRampToValueAtTime(effectiveTreble, now + 0.03);
+
+ const totalBoost = 1.0 + (Math.abs(bassValue) + Math.abs(trebleValue)) / COMP_DIV;
+ compensationGain.gain.linearRampToValueAtTime(totalBoost, now + 0.03);
+
+ const bypass = (bassValue === 0 && trebleValue === 0);
+ setBypass(bypass);
+}
+
+// ========== УПРАВЛЕНИЕ КРУТИЛКАМИ (МЫШЬ/ТАЧ) ==========
+let isDragging = false;
+let currentKnob = null;
+let startY, startVal;
+
+function startDrag(e, type) {
+ e.preventDefault(); // запрещаем выделение и прокрутку
+ isDragging = true;
+ currentKnob = type;
+ // Определяем координату касания: если мышь – e.clientY, если тач – e.touches[0].clientY
+ startY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
+ startVal = type === 'bass' ? bassValue : trebleValue;
+
+ document.addEventListener('mousemove', onDrag);
+ document.addEventListener('mouseup', stopDrag);
+ document.addEventListener('touchmove', onTouchMove, { passive: false });
+ document.addEventListener('touchend', stopDrag);
+ document.addEventListener('touchcancel', stopDrag);
+}
+
+function onDrag(e) {
+ if (!isDragging) return;
+ const currentY = e.clientY !== undefined ? e.clientY : e.touches[0].clientY;
+ const deltaY = startY - currentY; // вверх – положительно
+ let newVal = startVal + deltaY * 0.5;
+ newVal = Math.max(-10, Math.min(10, newVal));
+ newVal = Math.round(newVal * 2) / 2; // шаг 0.5 дБ
+ if (currentKnob === 'bass') {
+ setBassValue(newVal);
+ } else {
+ setTrebleValue(newVal);
+ }
+}
+
+function onTouchMove(e) {
+ e.preventDefault(); // блокируем прокрутку страницы при движении пальца
+ if (!isDragging) return;
+ onDrag(e.touches[0]);
+}
+
+function stopDrag() {
+ isDragging = false;
+ currentKnob = null;
+ document.removeEventListener('mousemove', onDrag);
+ document.removeEventListener('mouseup', stopDrag);
+ document.removeEventListener('touchmove', onTouchMove);
+ document.removeEventListener('touchend', stopDrag);
+ document.removeEventListener('touchcancel', stopDrag);
+}
+
+function setBassValue(val) {
+ bassValue = val;
+ updateKnobAngle(bassKnob, bassValue);
+ updateLed(bassLed, bassValue);
+ updateFilters();
+}
+
+function setTrebleValue(val) {
+ trebleValue = val;
+ updateKnobAngle(trebleKnob, trebleValue);
+ updateLed(trebleLed, trebleValue);
+ updateFilters();
+}
+
+function updateKnobAngle(knob, val) {
+ const angle = (val / 10) * 135;
+ knob.style.transform = `rotate(${angle}deg)`;
+}
+
+function updateLed(led, val) {
+ // Если радио выключено, светодиод всегда погашен
+ if (!isRadioOn) {
+ led.classList.remove('on');
+ return;
+ }
+ // Если радио включено, зажигаем только при ненулевом значении
+ if (val !== 0) {
+ led.classList.add('on');
+ } else {
+ led.classList.remove('on');
+ }
+}
+
+// Подключаем обработчики мыши и тача
+bassKnob.addEventListener('mousedown', (e) => startDrag(e, 'bass'));
+trebleKnob.addEventListener('mousedown', (e) => startDrag(e, 'treble'));
+bassKnob.addEventListener('touchstart', (e) => { e.preventDefault(); startDrag(e, 'bass'); });
+trebleKnob.addEventListener('touchstart', (e) => { e.preventDefault(); startDrag(e, 'treble'); });
+
+// ========== ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ==========
+window.addEventListener('load', () => {
+ setBassValue(0);
+ setTrebleValue(0);
+ stationNameEl.textContent = stations[0].name;
+});
+</script>
+
+</body>
+</html>
